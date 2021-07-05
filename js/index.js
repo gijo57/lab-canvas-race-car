@@ -2,7 +2,6 @@ const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 const width = canvas.width;
 const height = canvas.height;
-console.log(width);
 const road = new Image();
 road.src = './images/road.png';
 const carImg = new Image();
@@ -12,6 +11,7 @@ let lastObstacle = Date.now();
 let obstacles;
 let obstacleSpeed;
 let score;
+let collision;
 
 const car = {
   x: width / 2 - 25,
@@ -37,6 +37,7 @@ window.onload = () => {
     score = 0;
     obstacleSpeed = 5;
     obstacles = [];
+    collision = false;
     drawTrack();
     drawCar();
 
@@ -44,6 +45,25 @@ window.onload = () => {
       update();
     });
   }
+};
+
+const checkCollisions = () => {
+  obstacles.forEach((obstacle) => {
+    if (
+      car.y <= obstacle.y + 20 &&
+      car.x + 50 >= obstacle.x &&
+      car.x <= obstacle.x + obstacle.width
+    ) {
+      collision = true;
+    }
+  });
+};
+
+const gameOver = () => {
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = 'red';
+  ctx.font = '50px sans-serif';
+  ctx.fillText('GAME OVER!', 100, 100);
 };
 
 const drawTrack = () => {
@@ -60,6 +80,15 @@ const drawScore = () => {
   ctx.fillText(`Score: ${score}`, 100, 50);
 };
 
+const cleanObstacles = () => {
+  obstacles.forEach((o, i) => {
+    if (o.y > height) {
+      score++;
+      obstacles.splice(i, 1);
+    }
+  });
+};
+
 const drawObstacles = (obstacles, currentTime, obstacleInterval) => {
   if (currentTime - lastObstacle > obstacleInterval) {
     let min = Math.ceil(width - 350);
@@ -74,12 +103,6 @@ const drawObstacles = (obstacles, currentTime, obstacleInterval) => {
     obstacleSpeed += 0.1;
   }
 
-  obstacles.forEach((o, i) => {
-    if (o.y > height) {
-      score++;
-      obstacles.splice(i, 1);
-    }
-  });
   for (const obstacle of obstacles) {
     obstacle.y += obstacleSpeed;
     ctx.fillStyle = 'darkred';
@@ -112,10 +135,16 @@ const update = () => {
   ctx.clearRect(0, 0, width, height);
   drawTrack();
   drawCar();
-
+  cleanObstacles();
   drawObstacles(obstacles, currentTime, obstacleInterval);
   drawScore();
+  checkCollisions();
 
   car.move();
-  window.requestAnimationFrame(update);
+
+  if (!collision) {
+    window.requestAnimationFrame(update);
+  } else {
+    gameOver();
+  }
 };
